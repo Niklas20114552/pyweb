@@ -21,6 +21,67 @@ class EngineLimitation(Exception):
 
 
 def run_script(parent, script_name: str, script_content: str):
+    class Element:
+        def __init__(self, element_json: dict):
+            self._element_json = element_json
+
+        def id(self) -> str:
+            return self._element_json["id"]
+
+        def setId(self, id: str) -> None:
+            self._element_json["id"] = id
+
+    class TextElement(Element):
+        def text(self) -> str:
+            return self._element_json["widget"].text()
+
+        def setText(self, text: str) -> None:
+            self._element_json["widget"].setText(text)
+
+    class EventedTextElement(TextElement):
+        def __call__(self, func=None, *, event: str = ""):
+            if func is None:
+
+                def wrapper(func):
+                    self._processEvent(event, func)
+                    return func
+
+                return wrapper
+            return func
+
+        def _processEvent(self, event, func):
+            pass
+
+    class TextInput(EventedTextElement):
+        def _processEvent(self, event, func):
+            if event == "returnPressed":
+                self._element_json["widget"].returnPressed.connect(func)
+            elif event == "textChanged":
+                self._element_json["widget"].textChanged.connect(func)
+            else:
+                warning("[WPYS-E] Tried to assign invalid event type to TextInput.")
+
+    class Header1(TextElement):
+        pass
+
+    class Header2(TextElement):
+        pass
+
+    class Header3(TextElement):
+        pass
+
+    class Paragraph(TextElement):
+        pass
+
+    class Button(EventedTextElement):
+        def _processEvent(self, event, func):
+            if event == "clicked":
+                self._element_json["widget"].clicked.connect(func)
+            else:
+                warning(
+                    "[WPYS-E] Tried to assign invalid event type to Button element."
+                )
+
     def _print(*args, **kwargs):
         raise EngineLimitation("Use log(), warn() or error() instead")
 
@@ -36,13 +97,20 @@ def run_script(parent, script_name: str, script_content: str):
         raise EngineLimitation("Can't exit or quit a running script")
 
     def log(text):
-        parent.console.append(str(text))
+        for line in text.splitlines():
+            parent.console.insertPlainText(str(line))
 
     def warning(text):
-        parent.console.append(f'<span style="color: yellow">{str(text)}</span>')
+        for line in text.splitlines():
+            parent.console.append(
+                f'<span style="color: yellow">{str(line.replace(" ", "&nbsp;"))}</span>'
+            )
 
     def error(text):
-        parent.console.append(f'<span style="color: red">{str(text)}</span>')
+        for line in text.splitlines():
+            parent.console.append(
+                f'<span style="color: red">{str(line.replace(" ", "&nbsp;"))}</span>'
+            )
 
     def _eval(expression):
         if not isinstance(expression, str):
@@ -62,6 +130,28 @@ def run_script(parent, script_name: str, script_content: str):
 
     def _input(prompt: str):
         return parent.ask_question(script_name, prompt)
+
+    def _get_id(id: str):
+        element_json = None
+        for element in parent.browser_structure:
+            if element["id"] == id:
+                element_json = element
+
+        if element_json:
+            return element_register[element_json["type"]](element_json)
+
+    # def _get_ids
+    # def _get_type
+    # def _get_types
+
+    element_register = {
+        "header1": Header1,
+        "header2": Header2,
+        "header3": Header3,
+        "paragraph": Paragraph,
+        "button": Button,
+        "text_input": TextInput,
+    }
 
     if __name__ == "__main__":
         builtins_copy = __builtins__.__dict__.copy()
@@ -89,13 +179,11 @@ def run_script(parent, script_name: str, script_content: str):
     restricted_globals["__builtins__"]["eval"] = _eval
     restricted_globals["__builtins__"]["exec"] = _exec
     restricted_globals["__builtins__"]["input"] = _input
+    restricted_globals["__builtins__"]["getId"] = _get_id
     del restricted_globals["__builtins__"]["getattr"]
 
     try:
         exec(script_content, restricted_globals)
     except Exception:
-        tb_lines = traceback.format_exc().splitlines()
-        exception_pattern = r"^  File \"<string>\", line (\d+), in <module>$"
-        line_number = re.match(exception_pattern, tb_lines[3]).groups()[0]
-
-        error(f"[WPYS-E] {tb_lines[-1]} (at line {line_number} in {script_name})")
+        tb = traceback.format_exc()
+        error(f"[WPYS-E] Exception occured in {script_name}:\n{tb}\n")

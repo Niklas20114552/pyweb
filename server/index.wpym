@@ -1,5 +1,5 @@
-meta.set_title('Localhost server')
+meta.setTitle('Localhost server')
 
-engine.add_script('/index.wpys')
+engine.addScript('/index.wpys')
 
 header1('Hello world')

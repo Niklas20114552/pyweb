@@ -1,21 +1,11 @@
-log('Welcome to WebPy!')
+button = getId("submit")
 
-error('Oh its a red error now.')
-warning('Thats way better. Im just warning you.')
+@button(event='clicked')
+def submit():
+    button.set_text('No!')
 
-name = input('What is your name?')
+text_input = getId("name-prompt")
 
-log(f'Thats so nice {name}')
-
-exec('warning("Haha")')
-
-log("Look. I'm calculating something! :)")
-log(eval('5 + 7 % 2 * 6'))
-
-test = {'log': 5, 'hello': 'Haha'}
-log('Im taking a dump!')
-
-log(json.dumps(test))
-
-log('Ill fail for you!')
-import os
+@text_input(event='returnPressed')
+def returnPressed():
+    getId('desc').setText("Nice to meet you, " + text_input.text())

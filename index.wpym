@@ -1,16 +1,16 @@
-meta.set_favicon('https://google.com/favicon.ico')
-meta.set_title('Hello World')
+meta.setFavicon('https://google.com/favicon.ico')
+meta.setTitle('Hello World')
 
-engine.add_script('index.wpys')
+engine.addScript('index.wpys')
 
 header1("WebPy Markdown Standard", id='header')
 
 paragraph("Welcome to the WebPy Markdown Standard webpage!", id='desc')
 
-line_h()
+lineH()
 
 header2("Say hi!")
 
-text_input("What's your name?", id="name-prompt")
+textInput("What's your name?", id="name-prompt")
 
 button("Go for it!", id="submit")
