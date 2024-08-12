@@ -140,9 +140,28 @@ def run_script(parent, script_name: str, script_content: str):
         if element_json:
             return element_register[element_json["type"]](element_json)
 
-    # def _get_ids
-    # def _get_type
-    # def _get_types
+    def _get_ids(id: str):
+        return [
+            element_register[element["type"]](element)
+            for element in parent.browser_structure
+            if element["id"] == id
+        ]
+
+    def _get_type(element_type: str):
+        element_json = None
+        for element in parent.browser_structure:
+            if element["type"] == element_type:
+                element_json = element
+
+        if element_json:
+            return element_register[element_json["type"]](element_json)
+
+    def _get_types(element_type: str):
+        return [
+            element_register[element["type"]](element)
+            for element in parent.browser_structure
+            if element["type"] == element_type
+        ]
 
     element_register = {
         "header1": Header1,
@@ -150,7 +169,7 @@ def run_script(parent, script_name: str, script_content: str):
         "header3": Header3,
         "paragraph": Paragraph,
         "button": Button,
-        "text_input": TextInput,
+        "textInput": TextInput,
     }
 
     if __name__ == "__main__":
@@ -180,6 +199,9 @@ def run_script(parent, script_name: str, script_content: str):
     restricted_globals["__builtins__"]["exec"] = _exec
     restricted_globals["__builtins__"]["input"] = _input
     restricted_globals["__builtins__"]["getId"] = _get_id
+    restricted_globals["__builtins__"]["getIds"] = _get_ids
+    restricted_globals["__builtins__"]["getType"] = _get_type
+    restricted_globals["__builtins__"]["getTypes"] = _get_types
     del restricted_globals["__builtins__"]["getattr"]
 
     try:

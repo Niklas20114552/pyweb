@@ -57,25 +57,25 @@ def run_script(parent, script_name: str, script_content: str):
                 f'<span style="color: red">{str(line.replace(" ", "&nbsp;"))}</span>'
             )
 
-    def header1(content, id=""):
+    def header1(content="", id=""):
         widget = QLabel(content)
         widget.setFont(QFont(widget.font().family(), 24))
         parent.browser_structure.append({"widget": widget, "id": id, "type": "header1"})
         parent.web_layout.addWidget(widget)
 
-    def header2(content, id=""):
+    def header2(content="", id=""):
         widget = QLabel(content)
         widget.setFont(QFont(widget.font().family(), 21))
         parent.browser_structure.append({"widget": widget, "id": id, "type": "header2"})
         parent.web_layout.addWidget(widget)
 
-    def header3(content, id=""):
+    def header3(content="", id=""):
         widget = QLabel(content)
         widget.setFont(QFont(widget.font().family(), 18))
         parent.browser_structure.append({"widget": widget, "id": id, "type": "header3"})
         parent.web_layout.addWidget(widget)
 
-    def paragraph(content, id=""):
+    def paragraph(content="", id=""):
         widget = QLabel(content)
         parent.browser_structure.append(
             {"widget": widget, "id": id, "type": "paragraph"}
@@ -86,18 +86,18 @@ def run_script(parent, script_name: str, script_content: str):
         widget = QFrame()
         widget.setFrameShape(QFrame.Shape.HLine)
         widget.setLineWidth(3)
-        parent.browser_structure.append({"widget": widget, "id": id, "type": "line_h"})
+        parent.browser_structure.append({"widget": widget, "id": id, "type": "lineH"})
         parent.web_layout.addWidget(widget)
 
     def text_input(placeholder="", id=""):
         widget = QLineEdit()
         widget.setPlaceholderText(placeholder)
         parent.browser_structure.append(
-            {"widget": widget, "id": id, "type": "text_input"}
+            {"widget": widget, "id": id, "type": "textInput"}
         )
         parent.web_layout.addWidget(widget)
 
-    def button(content, id=""):
+    def button(content="", id=""):
         widget = QPushButton(content)
         parent.browser_structure.append({"widget": widget, "id": id, "type": "button"})
         parent.web_layout.addWidget(widget)

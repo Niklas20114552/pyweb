@@ -2,10 +2,17 @@ button = getId("submit")
 
 @button(event='clicked')
 def submit():
-    button.set_text('No!')
+    button.setText('No!')
+    getType("header1").setText('Oh. It changed')
+
+    for element in getIds('para'):
+        element.setText('how did we get here?')
 
 text_input = getId("name-prompt")
 
 @text_input(event='returnPressed')
 def returnPressed():
     getId('desc').setText("Nice to meet you, " + text_input.text())
+
+    for element in getTypes('header3'):
+        element.setText("I'm a large boy")

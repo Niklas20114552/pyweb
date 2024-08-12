@@ -14,3 +14,9 @@ header2("Say hi!")
 textInput("What's your name?", id="name-prompt")
 
 button("Go for it!", id="submit")
+
+paragraph(id='para')
+paragraph(id='para')
+
+header3()
+header3()
