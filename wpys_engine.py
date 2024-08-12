@@ -2,6 +2,7 @@
 import traceback
 import re
 import json
+from typing import Text
 import requests
 import math
 import hashlib
@@ -72,6 +73,16 @@ def run_script(parent, script_name: str, script_content: str):
 
     class Paragraph(TextElement):
         pass
+
+    class Link(TextElement):
+        def target(self) -> str:
+            return self._element_json["target"]
+
+        def setTarget(self, target: str):
+            self._element_json["target"] = target
+            self._element_json["widget"].mousePressEvent = (
+                lambda event: parent.navigate_to_rel(target)
+            )
 
     class Button(EventedTextElement):
         def _processEvent(self, event, func):
@@ -163,6 +174,9 @@ def run_script(parent, script_name: str, script_content: str):
             if element["type"] == element_type
         ]
 
+    def _navigate_to(target: str):
+        parent.navigate_to_rel(target)
+
     element_register = {
         "header1": Header1,
         "header2": Header2,
@@ -170,6 +184,7 @@ def run_script(parent, script_name: str, script_content: str):
         "paragraph": Paragraph,
         "button": Button,
         "textInput": TextInput,
+        "link": Link,
     }
 
     if __name__ == "__main__":
@@ -202,6 +217,7 @@ def run_script(parent, script_name: str, script_content: str):
     restricted_globals["__builtins__"]["getIds"] = _get_ids
     restricted_globals["__builtins__"]["getType"] = _get_type
     restricted_globals["__builtins__"]["getTypes"] = _get_types
+    restricted_globals["__builtins__"]["navigateTo"] = _navigate_to
     del restricted_globals["__builtins__"]["getattr"]
 
     try:

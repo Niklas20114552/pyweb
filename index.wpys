@@ -1,7 +1,10 @@
 button = getId("submit")
+link = getType("link")
 
 @button(event='clicked')
 def submit():
+    link.setText('not localhost')
+    link.setTarget('wpyp://example.org')
     button.setText('No!')
     getType("header1").setText('Oh. It changed')
 
@@ -16,3 +19,7 @@ def returnPressed():
 
     for element in getTypes('header3'):
         element.setText("I'm a large boy")
+
+@getId('local')(event='clicked')
+def click():
+    log('Hello World!')

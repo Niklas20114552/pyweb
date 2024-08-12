@@ -102,6 +102,15 @@ def run_script(parent, script_name: str, script_content: str):
         parent.browser_structure.append({"widget": widget, "id": id, "type": "button"})
         parent.web_layout.addWidget(widget)
 
+    def link(content, target="", id=""):
+        widget = QLabel(content)
+        widget.mousePressEvent = lambda event: parent.navigate_to_rel(target)
+        widget.setStyleSheet("text-decoration: underline; color: lightblue;")
+        parent.browser_structure.append(
+            {"widget": widget, "id": id, "type": "link", "target": target}
+        )
+        parent.web_layout.addWidget(widget)
+
     restricted_globals = {
         "__builtins__": None,
         "meta": meta(parent),
@@ -113,6 +122,7 @@ def run_script(parent, script_name: str, script_content: str):
         "lineH": line_h,
         "textInput": text_input,
         "button": button,
+        "link": link,
     }
 
     try:

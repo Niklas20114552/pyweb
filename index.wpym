@@ -5,6 +5,8 @@ engine.addScript('index.wpys')
 
 header1("WebPy Markdown Standard", id='header')
 
+link("Localhost Web-Python-Protocol Server", target="wpyp://localhost/")
+
 paragraph("Welcome to the WebPy Markdown Standard webpage!", id='desc')
 
 lineH()
@@ -20,3 +22,5 @@ paragraph(id='para')
 
 header3()
 header3()
+
+button("Another localhost", id='local')

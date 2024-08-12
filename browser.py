@@ -106,8 +106,21 @@ class Browser(QMainWindow):
 
         self.navbar_bar.setText(url)
         self.render_page(url)
-        print(str(self.current_index))
-        print(str(self.history))
+
+    def navigate_to_rel(self, path):
+        if path.startswith("/"):
+            path = path.removeprefix("/")
+            self.navigate_to(self.get_top_path(self.history[self.current_index]) + path)
+        elif (
+            path.startswith("wpyp://")
+            or path.startswith("wpyps://")
+            or path.startswith("file://")
+        ):
+            self.navigate_to(path)
+        else:
+            self.navigate_to(
+                os.path.split(self.history[self.current_index])[0] + "/" + path
+            )
 
     def navigate_next(self):
         if len(self.history) != self.current_index + 1:
@@ -213,14 +226,10 @@ class Browser(QMainWindow):
                     return response.text
                 else:
                     self.error("[WPYM-K] Failed to get: " + conv_wpy_url_to_http(url))
-                    self.history.pop()
-                    self.current_index -= 1
             except Exception as e:
                 self.error(
                     f"[WPYM-K] Error occured while trying to connect to: {conv_wpy_url_to_http(url)}. Error: {e.__class__.__name__}:{str(e)}"
                 )
-                self.history.pop()
-                self.current_index -= 1
         return ""
 
     def get_top_path(self, url: str) -> str:
