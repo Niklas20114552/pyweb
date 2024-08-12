@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-from posix import error
 import sys
 import requests
 from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QFont, QPixmap
 from urllib import parse as urlparse
 import wpym_kit
 import wpys_engine
@@ -91,18 +90,43 @@ class AskInputDialog(QDialog):
 
 
 class Browser(QMainWindow):
-    def navigate_to(self):
-        url = self.navbar_bar.text()
-        self.current_path = url
+    def navigate_to(self, url: str = "", historize=True):
+        if not url:
+            url = self.navbar_bar.text()
+
+        if historize:
+            if self.history[-1] != url:
+                self.current_index += 1
+            if self.current_index != len(self.history):
+                if url != self.history[self.current_index]:
+                    self.history = self.history[: self.current_index]
+
+            if self.history[-1] != url:
+                self.history.append(url)
+
+        self.navbar_bar.setText(url)
         self.render_page(url)
+        print(str(self.current_index))
+        print(str(self.history))
+
+    def navigate_next(self):
+        if len(self.history) != self.current_index + 1:
+            self.current_index += 1
+            self.navigate_to(self.history[self.current_index], historize=False)
+
+    def navigate_back(self):
+        if self.current_index + 1 != 1:
+            self.current_index -= 1
+            self.navigate_to(self.history[self.current_index], historize=False)
 
     def __init__(self) -> None:
         super().__init__()
         self.browser_structure = []
         self.scripts = []
+        self.history = [""]
         self.web_widget = None
         self.web_layout = None
-        self.current_path = ""
+        self.current_index = 0
 
         self.setWindowTitle("WPY-Browser")
         self.setMinimumSize(800, 600)
@@ -113,11 +137,18 @@ class Browser(QMainWindow):
 
         self.nav_back = QPushButton("<-")
         self.nav_back.setFixedSize(40, 30)
+        self.nav_back.clicked.connect(self.navigate_back)
+        self.nav_back.setToolTip("Prev.")
         self.nav_next = QPushButton("->")
         self.nav_next.setFixedSize(40, 30)
+        self.nav_next.setToolTip("Next")
+        self.nav_next.clicked.connect(self.navigate_next)
         self.nav_reload = QPushButton("@")
         self.nav_reload.setFixedSize(40, 30)
-        self.nav_reload.clicked.connect(lambda: self.render_page(self.current_path))
+        self.nav_reload.setToolTip("Reload")
+        self.nav_reload.clicked.connect(
+            lambda: self.render_page(self.history[self.current_index])
+        )
 
         self.navbar_icon = QLabel()
         self.navbar_title = QLabel()
@@ -140,6 +171,7 @@ class Browser(QMainWindow):
         self.website.setFrameShape(QFrame.Shape.NoFrame)
 
         self.console = QTextEdit()
+        self.console.setFont(QFont("Monospace"))
         self.console.setReadOnly(True)
         self.console.hide()
 
@@ -156,7 +188,10 @@ class Browser(QMainWindow):
         )
 
     def error(self, text):
-        self.console.append(f'<span style="color: red">{str(text)}</span>')
+        for line in text.splitlines():
+            self.console.append(
+                f'<span style="color: red">{str(line.replace(" ", "&nbsp;"))}</span>'
+            )
 
     def show_console(self):
         if self.console.isVisible():
@@ -172,11 +207,20 @@ class Browser(QMainWindow):
             else:
                 self.error("[WPYM-K] Failed to get file: " + url)
         elif url.startswith("wpyp://") or url.startswith("wpyps://"):
-            response = requests.get(conv_wpy_url_to_http(url))
-            if response.status_code == 200:
-                return response.text
-            else:
-                error("[WPYM-K] Failed to get: " + conv_wpy_url_to_http(url))
+            try:
+                response = requests.get(conv_wpy_url_to_http(url), timeout=5)
+                if response.status_code == 200:
+                    return response.text
+                else:
+                    self.error("[WPYM-K] Failed to get: " + conv_wpy_url_to_http(url))
+                    self.history.pop()
+                    self.current_index -= 1
+            except Exception as e:
+                self.error(
+                    f"[WPYM-K] Error occured while trying to connect to: {conv_wpy_url_to_http(url)}. Error: {e.__class__.__name__}:{str(e)}"
+                )
+                self.history.pop()
+                self.current_index -= 1
         return ""
 
     def get_top_path(self, url: str) -> str:
@@ -188,7 +232,7 @@ class Browser(QMainWindow):
         self.console.setPlainText("")
 
         s_path = os.path.split(path)
-        self.navbar_title.setText(">-<>-<")
+        self.navbar_title.setText("(°-°)")
         self.navbar_icon.setPixmap(QPixmap())
 
         self.browser_structure = []
