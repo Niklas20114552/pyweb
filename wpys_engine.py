@@ -22,22 +22,35 @@ class EngineLimitation(Exception):
 
 
 def run_script(parent, script_name: str, script_content: str):
+    def _excepted_func_call(event_type: str, widget_type: str, func):
+        try:
+            func()
+        except Exception:
+            tb = traceback.format_exc().splitlines()
+            match = re.match(r"^  File \"[^\"]*\", line (\d*), in .*$", tb[-2])
+            line_number = "?"
+            if match:
+                line_number = match.groups()[0]
+            error(
+                f"[WPYS-E] Exception occured while processing event {event_type} in {widget_type} (at line {line_number}):\n{tb[-1]}\n"
+            )
+
     class Element:
         def __init__(self, element_json: dict):
-            self._element_json = element_json
+            self._Element__element_json = element_json
 
         def id(self) -> str:
-            return self._element_json["id"]
+            return self._Element__element_json["id"]
 
         def setId(self, id: str) -> None:
-            self._element_json["id"] = id
+            self._Element__element_json["id"] = id
 
     class TextElement(Element):
         def text(self) -> str:
-            return self._element_json["widget"].text()
+            return self._Element__element_json["widget"].text()
 
         def setText(self, text: str) -> None:
-            self._element_json["widget"].setText(text)
+            self._Element__element_json["widget"].setText(text)
 
     class EventedTextElement(TextElement):
         def __call__(self, func=None, *, event: str = ""):
@@ -56,9 +69,13 @@ def run_script(parent, script_name: str, script_content: str):
     class TextInput(EventedTextElement):
         def _processEvent(self, event, func):
             if event == "returnPressed":
-                self._element_json["widget"].returnPressed.connect(func)
+                self._Element__element_json["widget"].returnPressed.connect(
+                    lambda: _excepted_func_call(event, "TextInput", func)
+                )
             elif event == "textChanged":
-                self._element_json["widget"].textChanged.connect(func)
+                self._Element__element_json["widget"].textChanged.connect(
+                    lambda: _excepted_func_call(event, "TextInput", func)
+                )
             else:
                 warning("[WPYS-E] Tried to assign invalid event type to TextInput.")
 
@@ -76,18 +93,20 @@ def run_script(parent, script_name: str, script_content: str):
 
     class Link(TextElement):
         def target(self) -> str:
-            return self._element_json["target"]
+            return self._Element__element_json["target"]
 
         def setTarget(self, target: str):
-            self._element_json["target"] = target
-            self._element_json["widget"].mousePressEvent = (
+            self._Element__element_json["target"] = target
+            self._Element__element_json["widget"].mousePressEvent = (
                 lambda event: parent.navigate_to_rel(target)
             )
 
     class Button(EventedTextElement):
         def _processEvent(self, event, func):
             if event == "clicked":
-                self._element_json["widget"].clicked.connect(func)
+                self._Element__element_json["widget"].clicked.connect(
+                    lambda: _excepted_func_call(event, "Button", func)
+                )
             else:
                 warning(
                     "[WPYS-E] Tried to assign invalid event type to Button element."
@@ -109,7 +128,7 @@ def run_script(parent, script_name: str, script_content: str):
 
     def log(text):
         for line in text.splitlines():
-            parent.console.insertPlainText(str(line))
+            parent.console.append(f"<span>{str(line).replace(' ', '&nbsp;')}</span>")
 
     def warning(text):
         for line in text.splitlines():
@@ -177,6 +196,9 @@ def run_script(parent, script_name: str, script_content: str):
     def _navigate_to(target: str):
         parent.navigate_to_rel(target)
 
+    def _href():
+        return parent.history[parent.current_index]
+
     element_register = {
         "header1": Header1,
         "header2": Header2,
@@ -218,10 +240,11 @@ def run_script(parent, script_name: str, script_content: str):
     restricted_globals["__builtins__"]["getType"] = _get_type
     restricted_globals["__builtins__"]["getTypes"] = _get_types
     restricted_globals["__builtins__"]["navigateTo"] = _navigate_to
+    restricted_globals["__builtins__"]["currentHref"] = _href
     del restricted_globals["__builtins__"]["getattr"]
 
     try:
-        exec(script_content, restricted_globals)
+        exec(script_content.replace("._Element", "."), restricted_globals)
     except Exception:
         tb = traceback.format_exc()
         error(f"[WPYS-E] Exception occured in {script_name}:\n{tb}\n")

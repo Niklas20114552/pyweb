@@ -3,6 +3,7 @@ link = getType("link")
 
 @button(event='clicked')
 def submit():
+    log('You are currently visiting: ' + currentHref())
     link.setText('not localhost')
     link.setTarget('wpyp://example.org')
     button.setText('No!')
@@ -22,4 +23,4 @@ def returnPressed():
 
 @getId('local')(event='clicked')
 def click():
-    log('Hello World!')
+    navigateTo('wpyp://localhost/')
