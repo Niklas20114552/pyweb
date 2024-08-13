@@ -41,34 +41,6 @@ def conv_wpy_url_to_http(url: str) -> str:
     return urlparse.urlunparse(parsed_list)
 
 
-class AskCodeDialog(QDialog):
-    def __init__(self, name, code: str):
-        super().__init__()
-        self.main_layout = QVBoxLayout()
-        self.setWindowTitle("Allow code execution")
-
-        self.label = QLabel(f"{name} want's to execute the following code.")
-        self.label2 = QLabel("Do you allow the execution?")
-
-        self.preview = QTextEdit(code)
-        self.preview.setReadOnly(True)
-
-        self.yesno = QHBoxLayout()
-        self.yes = QPushButton("Yes")
-        self.yes.clicked.connect(self.accept)
-        self.no = QPushButton("No")
-        self.no.clicked.connect(self.reject)
-        self.yesno.addWidget(self.yes)
-        self.yesno.addWidget(self.no)
-
-        self.main_layout.addWidget(self.label)
-        self.main_layout.addWidget(self.label2)
-        self.main_layout.addWidget(self.preview)
-        self.main_layout.addLayout(self.yesno)
-
-        self.setLayout(self.main_layout)
-
-
 class AskInputDialog(QDialog):
     def __init__(self, name, question):
         super().__init__()
@@ -258,10 +230,6 @@ class Browser(QMainWindow):
             wpys_engine.run_script(
                 self, os.path.split(script)[1], self.get_wpyp(script)
             )
-
-    def ask_execution(self, name, code):
-        dialog = AskCodeDialog(name, code)
-        return dialog.exec()
 
     def ask_question(self, name, question):
         dialog = AskInputDialog(name, question)

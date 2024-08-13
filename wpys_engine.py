@@ -153,10 +153,7 @@ def run_script(parent, script_name: str, script_content: str):
             raise SandboxViolation("Eval can only process mathematical expressions")
 
     def _exec(object: str, locals=None):
-        if parent.ask_execution(script_name, object):
-            exec(object, restricted_globals, locals)
-        else:
-            warning("[WPYS-E] User denied execution of code")
+        exec(object, restricted_globals, locals)
 
     def _input(prompt: str):
         return parent.ask_question(script_name, prompt)
@@ -171,11 +168,11 @@ def run_script(parent, script_name: str, script_content: str):
             return element_register[element_json["type"]](element_json)
 
     def _get_ids(id: str):
-        return [
+        return tuple(
             element_register[element["type"]](element)
             for element in parent.browser_structure
             if element["id"] == id
-        ]
+        )
 
     def _get_type(element_type: str):
         element_json = None
@@ -187,11 +184,11 @@ def run_script(parent, script_name: str, script_content: str):
             return element_register[element_json["type"]](element_json)
 
     def _get_types(element_type: str):
-        return [
+        return tuple(
             element_register[element["type"]](element)
             for element in parent.browser_structure
             if element["type"] == element_type
-        ]
+        )
 
     def _navigate_to(target: str):
         parent.navigate_to_rel(target)
