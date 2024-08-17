@@ -24,3 +24,5 @@ header3()
 header3()
 
 button("Another localhost", id='local')
+
+vBox([button("Hello"), button("Hi")], 'vbox1')

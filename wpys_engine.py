@@ -3,6 +3,7 @@ import traceback
 import re
 import json
 from typing import Text
+from PyQt6.QtWidgets import QLineEdit
 import requests
 import math
 import hashlib
@@ -30,7 +31,7 @@ def run_script(parent, script_name: str, script_content: str):
             match = re.match(r"^  File \"[^\"]*\", line (\d*), in .*$", tb[-2])
             line_number = "?"
             if match:
-                line_number = match.groups()[0]
+                line_number = match.group(0)
             error(
                 f"[WPYS-E] Exception occured while processing event {event_type} in {widget_type} (at line {line_number}):\n{tb[-1]}\n"
             )
@@ -79,6 +80,25 @@ def run_script(parent, script_name: str, script_content: str):
             else:
                 warning("[WPYS-E] Tried to assign invalid event type to TextInput.")
 
+        def placeholderText(self) -> str:
+            return self._Element__element_json["widget"].placeholderText()
+
+        def setPlaceholderText(self, placeholderText: str) -> None:
+            self._Element__element_json["widget"].setPlaceholderText(placeholderText)
+
+        def isPassword(self) -> bool:
+            return (
+                self._Element__element_json["widget"].echoMode()
+                == QLineEdit.EchoMode.Password
+            )
+
+        def setPassword(self, password: bool) -> None:
+            if password:
+                echo = QLineEdit.EchoMode.Password
+            else:
+                echo = QLineEdit.EchoMode.Normal
+            self._Element__element_json["widget"].setEchoMode(echo)
+
     class Header1(TextElement):
         pass
 
@@ -111,6 +131,46 @@ def run_script(parent, script_name: str, script_content: str):
                 warning(
                     "[WPYS-E] Tried to assign invalid event type to Button element."
                 )
+
+        def isEnabled(self) -> bool:
+            return self._Element__element_json["widget"].isEnabled()
+
+        def setDisabled(self, disabled: bool) -> None:
+            self._Element__element_json["widget"].setDisabled(disabled)
+
+    class TextDropdown(EventedTextElement):
+        def _processEvent(self, event, func):
+            if event == "activated":
+                self._Element__element_json["widget"].activated.connect(
+                    lambda: _excepted_func_call(event, "TextDropdown", func)
+                )
+            else:
+                warning(
+                    "[WPYS-E] Tried to assign invalid event type to TextDropdown element."
+                )
+
+        def placeholderText(self) -> str:
+            return self._Element__element_json["widget"].placeholderText()
+
+        def setPlaceholderText(self, placeholderText: str) -> None:
+            self._Element__element_json["widget"].setPlaceholderText(placeholderText)
+
+        def items(self) -> list[str]:
+            return [
+                self._Element__element_json["widget"].itemText(index)
+                for index in range(self._Element__element_json["widget"].count())
+            ]
+
+        def setItems(self, items: list[str]) -> None:
+            self._Element__element_json["widget"].clear()
+            self._Element__element_json["widget"].addItems(items)
+
+    class GroupBox(Element):
+        def title(self) -> str:
+            return self._Element__element_json["widget"].title()
+
+        def setTitle(self, title: str) -> None:
+            self._Element__element_json["widget"].setTitle(title)
 
     def _print(*args, **kwargs):
         raise EngineLimitation("Use log(), warn() or error() instead")
@@ -204,6 +264,8 @@ def run_script(parent, script_name: str, script_content: str):
         "button": Button,
         "textInput": TextInput,
         "link": Link,
+        "textDropdown": TextDropdown,
+        "groupBox": GroupBox,
     }
 
     if __name__ == "__main__":
@@ -238,6 +300,7 @@ def run_script(parent, script_name: str, script_content: str):
     restricted_globals["__builtins__"]["getTypes"] = _get_types
     restricted_globals["__builtins__"]["navigateTo"] = _navigate_to
     restricted_globals["__builtins__"]["currentHref"] = _href
+    restricted_globals["__builtins__"]["convWPYPtoHTTP"] = parent.conv_wpy_url_to_http
     del restricted_globals["__builtins__"]["getattr"]
 
     try:
@@ -245,3 +308,4 @@ def run_script(parent, script_name: str, script_content: str):
     except Exception:
         tb = traceback.format_exc()
         error(f"[WPYS-E] Exception occured in {script_name}:\n{tb}\n")
+        print("Exception occurred. Please check console")

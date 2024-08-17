@@ -23,24 +23,6 @@ from PyQt6.QtWidgets import (
 )
 
 
-def conv_wpy_url_to_http(url: str) -> str:
-    parsed = urlparse.urlparse(url)
-    parsed_list = list(parsed)
-    if not parsed.port and parsed.scheme == "wpyp":
-        parsed_list[1] = f"{parsed.hostname}:8950"
-    elif not parsed.port and parsed.scheme == "wpyps":
-        parsed_list[1] = f"{parsed.hostname}:8951"
-    else:
-        parsed_list[1] = f"{parsed.hostname}:{parsed.port}"
-
-    if parsed.scheme == "wpyp":
-        parsed_list[0] = "http"
-    else:
-        parsed_list[0] = "https"
-
-    return urlparse.urlunparse(parsed_list)
-
-
 class AskInputDialog(QDialog):
     def __init__(self, name, question):
         super().__init__()
@@ -62,6 +44,37 @@ class AskInputDialog(QDialog):
 
 
 class Browser(QMainWindow):
+    def conv_wpy_url_to_http(self, url: str) -> str:
+        parsed = urlparse.urlparse(url)
+        parsed_list = list(parsed)
+        if parsed.scheme not in ("wpyp", "wpyps"):
+            return url
+
+        if parsed.hostname.endswith(".wpyh"):
+            host = parsed.hostname.removesuffix(".wpyh")
+            response = requests.get("https://gnuhobbyhub.de:8952/" + host)
+            parsed_list[0] = "wpyp"
+            if not parsed.port or parsed.port == 8951:
+                parsed_list[1] = response.text + ":8950"
+            else:
+                parsed_list[1] = f"{response.text}:{parsed.port}"
+            parsed = urlparse.urlparse(urlparse.urlunparse(parsed_list))
+            parsed_list = list(parsed)
+
+        if not parsed.port and parsed.scheme == "wpyp":
+            parsed_list[1] = f"{parsed.hostname}:8950"
+        elif not parsed.port and parsed.scheme == "wpyps":
+            parsed_list[1] = f"{parsed.hostname}:8951"
+        else:
+            parsed_list[1] = f"{parsed.hostname}:{parsed.port}"
+
+        if parsed.scheme == "wpyp":
+            parsed_list[0] = "http"
+        else:
+            parsed_list[0] = "https"
+
+        return urlparse.urlunparse(parsed_list)
+
     def navigate_to(self, url: str = "", historize=True):
         if not url:
             url = self.navbar_bar.text()
@@ -115,6 +128,7 @@ class Browser(QMainWindow):
 
         self.setWindowTitle("WPY-Browser")
         self.setMinimumSize(800, 600)
+        self.showMaximized()
 
         self.widget = QWidget()
         self.main_layout = QVBoxLayout()
@@ -159,6 +173,7 @@ class Browser(QMainWindow):
         self.console.setFont(QFont("Monospace"))
         self.console.setReadOnly(True)
         self.console.hide()
+        self.console.setMaximumHeight(200)
 
         self.main_layout.addLayout(self.navbar_layout)
         self.main_layout.addWidget(self.website)
@@ -184,25 +199,39 @@ class Browser(QMainWindow):
         else:
             self.console.show()
 
-    def get_wpyp(self, url: str) -> str:
+    def get_wpyp(self, url: str) -> tuple[str, str]:
         if url.startswith("file://"):
-            url = url.removeprefix("file://")
-            if os.path.exists(url):
-                return open(url, "r").read()
+            surl = url.removeprefix("file://")
+            if os.path.exists(surl):
+                return open(surl, "r").read(), url
             else:
                 self.error("[WPYM-K] Failed to get file: " + url)
         elif url.startswith("wpyp://") or url.startswith("wpyps://"):
             try:
-                response = requests.get(conv_wpy_url_to_http(url), timeout=5)
+                response = requests.get(self.conv_wpy_url_to_http(url), timeout=5)
                 if response.status_code == 200:
-                    return response.text
+                    purl = urlparse.urlparse(url)
+                    turl = urlparse.urlparse(response.url)
+                    turl_list = list(turl)
+                    if purl.port == 8951 or turl.scheme == "https":
+                        turl_list[0] = "wpyps"
+                    else:
+                        turl_list[0] = "wpyp"
+
+                    if purl.hostname.endswith(".wpyh"):
+                        turl_list[1] = purl.netloc
+                    else:
+                        turl_list[1] = purl.netloc
+                    return response.text, urlparse.urlunparse(turl_list)
                 else:
-                    self.error("[WPYM-K] Failed to get: " + conv_wpy_url_to_http(url))
+                    self.error(
+                        "[WPYM-K] Failed to get: " + self.conv_wpy_url_to_http(url)
+                    )
             except Exception as e:
                 self.error(
-                    f"[WPYM-K] Error occured while trying to connect to: {conv_wpy_url_to_http(url)}. Error: {e.__class__.__name__}:{str(e)}"
+                    f"[WPYM-K] Error occured while trying to connect to: {self.conv_wpy_url_to_http(url)}. Error: {e.__class__.__name__}:{str(e)}"
                 )
-        return ""
+        return "", ""
 
     def get_top_path(self, url: str) -> str:
         parsed_list = list(urlparse.urlparse(url))
@@ -224,11 +253,13 @@ class Browser(QMainWindow):
         self.web_widget.setLayout(self.web_layout)
         self.website.setWidget(self.web_widget)
 
-        wpym_kit.run_script(self, s_path[1], self.get_wpyp(path))
+        wpyp = self.get_wpyp(path)
+        self.navbar_bar.setText(wpyp[1])
+        wpym_kit.run_script(self, s_path[1], wpyp[0])
         self.web_layout.addStretch()
         for script in self.scripts:
             wpys_engine.run_script(
-                self, os.path.split(script)[1], self.get_wpyp(script)
+                self, os.path.split(script)[1], self.get_wpyp(script)[0]
             )
 
     def ask_question(self, name, question):

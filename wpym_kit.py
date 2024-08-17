@@ -3,7 +3,18 @@ import traceback
 import os
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtWidgets import QFrame, QLabel, QLineEdit, QPushButton
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QComboBox,
+    QVBoxLayout,
+    QWidget,
+    QSizePolicy,
+)
 import requests
 
 
@@ -16,7 +27,7 @@ class meta:
         self.parent.navbar_title.setText(title)
 
     def setFavicon(self, url):
-        response = requests.get(url)
+        response = requests.get(self.parent.conv_wpy_url_to_http(url))
         if response.status_code != 200:
             print("Failed to download Favicon!")
             return
@@ -57,59 +68,95 @@ def run_script(parent, script_name: str, script_content: str):
                 f'<span style="color: red">{str(line.replace(" ", "&nbsp;"))}</span>'
             )
 
+    def append_element(widget, id, type, append: dict = {}):
+        elementStr = {"widget": widget, "id": id, "type": type, **append}
+        parent.browser_structure.append(elementStr)
+        parent.web_layout.addWidget(widget)
+        return elementStr
+
+    def append_layout(layout, id, type):
+        elementStr = {"layout": layout, "id": id, "type": type}
+        parent.browser_structure.append(elementStr)
+        parent.web_layout.addLayout(layout)
+        return elementStr
+
     def header1(content="", id=""):
         widget = QLabel(content)
         widget.setFont(QFont(widget.font().family(), 24))
-        parent.browser_structure.append({"widget": widget, "id": id, "type": "header1"})
-        parent.web_layout.addWidget(widget)
+        return append_element(widget, id, "header1")
 
     def header2(content="", id=""):
         widget = QLabel(content)
         widget.setFont(QFont(widget.font().family(), 21))
-        parent.browser_structure.append({"widget": widget, "id": id, "type": "header2"})
-        parent.web_layout.addWidget(widget)
+        return append_element(widget, id, "header2")
 
     def header3(content="", id=""):
         widget = QLabel(content)
         widget.setFont(QFont(widget.font().family(), 18))
-        parent.browser_structure.append({"widget": widget, "id": id, "type": "header3"})
-        parent.web_layout.addWidget(widget)
+        return append_element(widget, id, "header3")
 
     def paragraph(content="", id=""):
         widget = QLabel(content)
-        parent.browser_structure.append(
-            {"widget": widget, "id": id, "type": "paragraph"}
-        )
-        parent.web_layout.addWidget(widget)
+        widget.setWordWrap(True)
+        return append_element(widget, id, "paragraph")
 
     def line_h(id=""):
         widget = QFrame()
         widget.setFrameShape(QFrame.Shape.HLine)
         widget.setLineWidth(3)
-        parent.browser_structure.append({"widget": widget, "id": id, "type": "lineH"})
-        parent.web_layout.addWidget(widget)
+        return append_element(widget, id, "lineH")
 
-    def text_input(placeholder="", id=""):
+    def text_input(placeholder="", id="", password=False):
         widget = QLineEdit()
+        if password:
+            widget.setEchoMode(QLineEdit.EchoMode.Password)
         widget.setPlaceholderText(placeholder)
-        parent.browser_structure.append(
-            {"widget": widget, "id": id, "type": "textInput"}
-        )
-        parent.web_layout.addWidget(widget)
+        return append_element(widget, id, "textInput")
 
-    def button(content="", id=""):
+    def button(content="", disabled=False, id=""):
         widget = QPushButton(content)
-        parent.browser_structure.append({"widget": widget, "id": id, "type": "button"})
-        parent.web_layout.addWidget(widget)
+        widget.setDisabled(disabled)
+        return append_element(widget, id, "button")
 
     def link(content, target="", id=""):
         widget = QLabel(content)
         widget.mousePressEvent = lambda event: parent.navigate_to_rel(target)
         widget.setStyleSheet("text-decoration: underline; color: lightblue;")
-        parent.browser_structure.append(
-            {"widget": widget, "id": id, "type": "link", "target": target}
-        )
-        parent.web_layout.addWidget(widget)
+        return append_element(widget, id, "header2", append={"target": target})
+
+    def text_dropdown(values=[], placeholder="", id=""):
+        widget = QComboBox()
+        widget.addItems(values)
+        widget.setPlaceholderText(placeholder)
+        return append_element(widget, id, "textDropdown")
+
+    def stretch(id=""):
+        widget = QWidget()
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        return append_element(widget, id, "stretch")
+
+    def h_box(content: list | tuple, id=""):
+        layout = QHBoxLayout()
+        for element in content:
+            if "layout" in element:
+                element["layout"].parent().removeItem(element["layout"])
+                layout.addLayout(element["layout"])
+            elif "widget" in element:
+                layout.addWidget(element["widget"])
+        return append_layout(layout, id, "vBox")
+
+    def group_box(content: list | tuple, title="", id=""):
+        widget = QGroupBox()
+        widget.setTitle(title)
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
+        for element in content:
+            if "layout" in element:
+                element["layout"].parent().removeItem(element["layout"])
+                layout.addLayout(element["layout"])
+            elif "widget" in element:
+                layout.addWidget(element["widget"])
+        return append_element(widget, id, "groupBox", append={"layout": layout})
 
     restricted_globals = {
         "__builtins__": None,
@@ -123,6 +170,10 @@ def run_script(parent, script_name: str, script_content: str):
         "textInput": text_input,
         "button": button,
         "link": link,
+        "hBox": h_box,
+        "textDropdown": text_dropdown,
+        "groupBox": group_box,
+        "stretch": stretch,
     }
 
     try:
@@ -130,3 +181,4 @@ def run_script(parent, script_name: str, script_content: str):
     except Exception:
         tb = traceback.format_exc()
         error(f"[WPYM-K] Failed to render {script_name}:\n{tb}\n")
+        print("Exception occurred. Please check console")
