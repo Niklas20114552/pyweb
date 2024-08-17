@@ -23,7 +23,7 @@ def is_ip_address(address):
         r"^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})$|"
         r"^:((:[0-9a-fA-F]{1,4}){1,7}|:)$|"
         r"^fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}$|"
-       r"::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])$|"
+        r"::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])$|"
         r"([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])$"
     )
     if ip_pattern.match(address):
@@ -32,8 +32,11 @@ def is_ip_address(address):
         return True
     return False
 
+
 def is_hostname(hostname):
-    pattern = re.compile(r'(?i)^(?:([a-z0-9-]+|\*)\.)?([a-z0-9-]{1,61})\.([a-z0-9]{2,7})$')
+    pattern = re.compile(
+        r"(?i)^(?:([a-z0-9-]+|\*)\.)?([a-z0-9-]{1,61})\.([a-z0-9]{2,7})$"
+    )
     return bool(re.match(pattern, hostname))
 
 
@@ -51,7 +54,7 @@ class CustomHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if result:
             self.send_answer(200, str(result[1]))
         else:
-            self.send_answer(404, "404 Mo domain found")
+            self.send_answer(404, "404 No domain found")
 
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
@@ -102,10 +105,7 @@ class CustomHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_answer(400, "400 Malformed JSON")
             return
 
-        if (
-            "domain" not in json_data
-            or "secret_key" not in json_data
-        ):
+        if "domain" not in json_data or "secret_key" not in json_data:
             self.send_answer(400, "400 Missing keys")
             return
 
@@ -165,4 +165,3 @@ server = socketserver.TCPServer(("0.0.0.0", 8952), CustomHTTPRequestHandler)
 print("Serving the customers")
 server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
 server.serve_forever()
- 
